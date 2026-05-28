@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  lambda:
+    build: .
+    ports:
+      - "9000:8080"
+    environment:
+      - ENVIRONMENT=dev
+      - AWS_REGION=eu-west-1
+      - LOG_LEVEL=DEBUG
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+    volumes:
+      - ~/.aws:/root/.aws:ro
