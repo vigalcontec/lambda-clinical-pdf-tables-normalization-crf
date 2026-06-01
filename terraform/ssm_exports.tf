@@ -2,9 +2,10 @@
 # SSM Parameter Exports - Lambda Configuration
 # =============================================================================
 # Export Lambda function details to SSM for use by other services
+# Path format: /{env}/{project}/lambda/{name}/...
 
 resource "aws_ssm_parameter" "function_arn" {
-  name        = "/${var.environment}/lambda/${local.function_name}/function_arn"
+  name        = "/${var.environment}/${local.project_name}/lambda/${local.function_name}/function_arn"
   description = "ARN of the ${local.function_name} Lambda function"
   type        = "String"
   value       = aws_lambda_function.main.arn
@@ -15,7 +16,7 @@ resource "aws_ssm_parameter" "function_arn" {
 }
 
 resource "aws_ssm_parameter" "function_name" {
-  name        = "/${var.environment}/lambda/${local.function_name}/function_name"
+  name        = "/${var.environment}/${local.project_name}/lambda/${local.function_name}/function_name"
   description = "Name of the ${local.function_name} Lambda function"
   type        = "String"
   value       = aws_lambda_function.main.function_name
@@ -26,7 +27,7 @@ resource "aws_ssm_parameter" "function_name" {
 }
 
 resource "aws_ssm_parameter" "invoke_arn" {
-  name        = "/${var.environment}/lambda/${local.function_name}/invoke_arn"
+  name        = "/${var.environment}/${local.project_name}/lambda/${local.function_name}/invoke_arn"
   description = "Invoke ARN of the ${local.function_name} Lambda function"
   type        = "String"
   value       = aws_lambda_function.main.invoke_arn
@@ -37,7 +38,7 @@ resource "aws_ssm_parameter" "invoke_arn" {
 }
 
 resource "aws_ssm_parameter" "role_arn" {
-  name        = "/${var.environment}/lambda/${local.function_name}/role_arn"
+  name        = "/${var.environment}/${local.project_name}/lambda/${local.function_name}/role_arn"
   description = "Execution role ARN for ${local.function_name}"
   type        = "String"
   value       = aws_iam_role.lambda.arn
