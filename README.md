@@ -1,40 +1,59 @@
-# AWS Lambda Python Template
+# Clinical PDF Tables Normalization Lambda
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://www.python.org/)
 [![Poetry](https://img.shields.io/badge/Poetry-1.8%2B-60A5FA?logo=poetry)](https://python-poetry.org/)
 [![Docker](https://img.shields.io/badge/Docker-ECR-2496ED?logo=docker)](https://aws.amazon.com/ecr/)
 [![Terraform](https://img.shields.io/badge/Terraform-1.10%2B-7B42BC?logo=terraform)](https://www.terraform.io/)
 
-Production-ready AWS Lambda template using Python, Poetry for dependency management, and Docker container deployment to ECR.
+AWS Lambda function that normalizes clinical PDF table data using Claude AI (via AWS Bedrock). This Lambda is part of the Clinical RAG Foundry pipeline and runs after the Textract extraction step.
 
 ---
 
 ## 📋 Table of Contents
 
+- [Architecture](#architecture)
 - [Features](#features)
-- [Repository Structure](#repository-structure)
+- [Event Flow](#event-flow)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [Local Development](#local-development)
 - [Configuration](#configuration)
 - [Deployment](#deployment)
 - [Testing](#testing)
-- [SSM Parameters](#ssm-parameters)
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Step Functions Distributed Map                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌──────────────┐     ┌──────────────────┐     ┌────────────────────┐  │
+│  │   Textract   │────▶│  Normalization   │────▶│     DynamoDB       │  │
+│  │    Lambda    │     │     Lambda       │     │   (Job Tracking)   │  │
+│  └──────────────┘     └──────────────────┘     └────────────────────┘  │
+│         │                      │                                        │
+│         │                      │                                        │
+│         ▼                      ▼                                        │
+│   Raw Table Data         Claude AI (Bedrock)                           │
+│   (rows, columns)        Normalizes & Structures                       │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Features
 
-- ✅ **Python 3.12** - Latest Python runtime
-- ✅ **Poetry** - Modern dependency management with lock file
-- ✅ **Docker** - Container-based Lambda deployment
-- ✅ **ECR** - AWS Elastic Container Registry for images
-- ✅ **Terraform** - Infrastructure as Code
-- ✅ **GitHub Actions** - CI/CD pipeline with OIDC authentication
+- ✅ **Claude AI Integration** - Uses AWS Bedrock to normalize table data
+- ✅ **Smart Table Type Detection** - Detects efficacy, adverse events, dosing tables
+- ✅ **Professional Prompts** - Clinical data specialist prompts for accurate normalization
+- ✅ **DynamoDB Tracking** - Updates job status and stores normalized data
+- ✅ **Error Handling** - Graceful handling of Textract failures and Claude errors
+- ✅ **Structured Logging** - AWS Lambda Powertools for observability
 - ✅ **Multi-environment** - dev, qa, prod support
-- ✅ **SSM Integration** - Read datalake bucket/KMS ARNs from Parameter Store
-- ✅ **Structured Logging** - AWS Lambda Powertools
-- ✅ **Type Hints** - Full type annotation support
 
 ---
 

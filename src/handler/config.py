@@ -20,6 +20,16 @@ class Settings(BaseSettings):
     aws_region: str = "eu-west-1"
     log_level: str = "INFO"
 
+    # DynamoDB configuration (from SSM via Terraform)
+    dynamodb_table_name: str = ""
+
+    # Bedrock configuration
+    bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+
+    # S3 configuration (from SSM via Terraform)
+    business_bucket_name: str = ""
+    output_prefix: str = "crf/clinical_tables"
+
 
 @lru_cache
 def get_settings() -> Settings:

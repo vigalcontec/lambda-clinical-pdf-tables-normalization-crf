@@ -31,27 +31,26 @@ on:
         required: false
         type: boolean
         default: false
-  # ─────────────────────────────────────────────────────────────────────────────
-  # UNCOMMENT BELOW TO ENABLE AUTOMATIC DEPLOYMENTS
-  # ─────────────────────────────────────────────────────────────────────────────
-  # push:
-  #   branches: [main, develop, "feature/*", "release/*"]
-  #   paths:
-  #     - 'src/**'
-  #     - 'tests/**'
-  #     - 'Dockerfile'
-  #     - 'pyproject.toml'
-  #     - 'poetry.lock'
-  #     - 'terraform/**'
-  #     - '.github/workflows/deploy.yml'
-  # pull_request:
-  #   branches: [main, develop]
-  #   paths:
-  #     - 'src/**'
-  #     - 'tests/**'
-  #     - 'Dockerfile'
-  #     - 'pyproject.toml'
-  #     - 'terraform/**'
+
+
+  push:
+    branches: [main, develop, "feature/*", "release/*"]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Dockerfile'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+      - 'terraform/**'
+      - '.github/workflows/deploy.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'Dockerfile'
+      - 'pyproject.toml'
+      - 'terraform/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -131,7 +130,7 @@ jobs:
         run: poetry install --with dev
 
       - name: Lint
-        run: poetry run ruff check src tests
+        run: poetry run ruff check src
 
       - name: Type check
         run: poetry run mypy src

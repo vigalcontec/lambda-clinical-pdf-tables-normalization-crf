@@ -5,39 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-04-30
+## [1.0.0] - 2026-05-28
 
 ### Added
 
-- **Lambda Function Template** - Production-ready Python 3.12 Lambda with Poetry
-- **Docker Container Deployment** - Multi-stage Dockerfile for ECR
-- **Terraform Infrastructure** - Lambda, IAM roles, CloudWatch Logs, SSM exports
-- **GitHub Actions CI/CD** - OIDC authentication, multi-environment support
-- **AWS Lambda Powertools** - Logger, Tracer, structured logging
-- **SSM Integration** - Read datalake bucket/KMS ARNs from Parameter Store
-- **Unit Tests** - pytest with 80% coverage requirement
-- **Code Quality** - ruff linter, mypy type checking
-- **Makefile** - Common development commands
+- **Table Normalization with Claude AI** - Uses AWS Bedrock to normalize Textract output
+- **Smart Table Type Detection** - Automatically detects efficacy, adverse events, dosing tables
+- **Professional Clinical Prompts** - Expert prompts for accurate medical data normalization
+- **JSONL Output with Adaptive Schema** - Writes normalized data to S3 as JSON Lines with versioned, evolvable schema
+- **DynamoDB Integration** - Updates job tracking with normalized data
+- **Error Handling** - Graceful handling of Textract failures and Claude errors
 
-### CI/CD Features
+### Features
 
-- **Manual Trigger** - `workflow_dispatch` for deploy/destroy actions
-- **Environment Detection** - Automatic env based on branch (main→prod, release/*→qa, *→dev)
-- **ECR Management** - Automatic repository creation via AWS CLI
-- **Terraform Destroy** - Manual cleanup action to remove all infrastructure
+- **Bedrock Integration** (`src/handler/utils/bedrock.py`)
+  - `invoke_claude()` - Direct Claude model invocation
+  - `normalize_table_with_claude()` - Table-specific normalization
 
-### Template Mode
+- **DynamoDB Tracking** (`src/handler/utils/dynamodb.py`)
+  - `update_table_with_normalized_data()` - Store normalized data
+  - `increment_tables_normalized()` - Track progress
+  - `increment_normalization_failed()` - Track failures
+  - `update_job_status_if_complete()` - Mark job complete when all tables processed
 
-- Workflow triggers commented out by default
-- Step-by-step setup instructions in README
-- Configure GitHub secrets and uncomment triggers to enable
+- **Clinical Prompts** (`src/handler/prompts.py`)
+  - System prompt for clinical data specialist
+  - Specialized prompts for efficacy, adverse events, dosing tables
+  - JSON output format specification
 
-### Infrastructure Created
+### Infrastructure
 
 | Resource | Description |
 |----------|-------------|
-| Lambda Function | Container-based with X-Ray tracing |
-| IAM Role | Execution role with S3, KMS, CloudWatch permissions |
-| ECR Repository | Created by CI/CD, lifecycle policy managed by Terraform |
-| CloudWatch Logs | Log group with 14-day retention |
-| SSM Parameters | Function ARN, name, invoke ARN, role ARN exports |
+| Lambda Function | 120s timeout, 512MB memory for Claude API calls |
+| IAM Role | Bedrock InvokeModel, DynamoDB UpdateItem/GetItem/PutItem |
+| Environment Variables | DYNAMODB_TABLE_NAME, BEDROCK_MODEL_ID |
+
+### SSM Dependencies
+
+| Parameter | Source |
+|-----------|--------|
+| DynamoDB Table Name | `/{env}/clinical-rag-foundry/dynamodb/clinical-pdf-jobs-crf/table_name` |
+| DynamoDB Table ARN | `/{env}/clinical-rag-foundry/dynamodb/clinical-pdf-jobs-crf/table_arn` |
+
+### Event Format
+
+**Input (from Textract Lambda):**
+```json
+{
+  "status": "SUCCESS",
+  "s3_bucket": "bucket-name",
+  "s3_key": "path/to/document.pdf",
+  "product_name": "keytruda",
+  "table_name": "Table 6: Efficacy results...",
+  "table_number": 6,
+  "pages_processed": [32],
+  "table": {
+    "rows": [["Header1", "Header2"], ["Value1", "Value2"]],
+    "row_count": 2,
+    "column_count": 2,
+    "confidence": 98.5
+  },
+  "events_s3_key": "path/to/events.json"
+}
+```
+
+**Output:**
+```json
+{
+  "status": "SUCCESS",
+  "product_name": "keytruda",
+  "table_name": "Table 6: Efficacy results...",
+  "table_number": 6,
+  "page": 32,
+  "table_type_detected": "efficacy",
+  "normalized_data": {...},
+  "normalization_status": "NORMALIZED"
+}
+```

@@ -9,41 +9,74 @@ from handler.config import Settings, get_settings
 class TestHandler:
     """Tests for main handler function."""
 
-    def test_handler_success(self, lambda_event: dict[str, Any], lambda_context: Any) -> None:
+    @patch("handler.main.normalize_table_with_claude")
+    @patch("handler.main.update_table_with_normalized_data")
+    @patch("handler.main.increment_tables_normalized")
+    @patch("handler.main.update_job_status_if_complete")
+    def test_handler_success(
+        self,
+        mock_update_status: MagicMock,
+        mock_increment: MagicMock,
+        mock_update_table: MagicMock,
+        mock_normalize: MagicMock,
+        lambda_event: dict[str, Any],
+        lambda_context: Any,
+        normalized_table_response: dict[str, Any],
+    ) -> None:
         """Test successful handler execution."""
         get_settings.cache_clear()
+        mock_normalize.return_value = normalized_table_response
 
         from handler.main import handler
 
         result = handler(lambda_event, lambda_context)
 
-        assert result["statusCode"] == 200
-        assert result["body"]["message"] == "Success"
-        assert result["body"]["event"] == lambda_event
+        assert result["status"] == "SUCCESS"
+        assert result["product_name"] == "keytruda"
+        assert result["table_number"] == 7
+        assert result["normalization_status"] == "NORMALIZED"
+        assert result["normalized_data"] == normalized_table_response
+        mock_normalize.assert_called_once()
 
-    def test_handler_returns_event(
-        self, lambda_event: dict[str, Any], lambda_context: Any
+    @patch("handler.main.increment_normalization_failed")
+    @patch("handler.main.update_job_status_if_complete")
+    def test_handler_skips_failed_textract(
+        self,
+        mock_update_status: MagicMock,
+        mock_increment_failed: MagicMock,
+        lambda_event_failed: dict[str, Any],
+        lambda_context: Any,
     ) -> None:
-        """Test handler returns the event."""
+        """Test handler skips normalization when Textract failed."""
         get_settings.cache_clear()
 
         from handler.main import handler
 
-        result = handler(lambda_event, lambda_context)
+        result = handler(lambda_event_failed, lambda_context)
 
-        assert result["body"]["event"]["key1"] == "value1"
-        assert result["body"]["event"]["key2"] == "value2"
+        assert result["status"] == "SKIPPED"
+        assert result["reason"] == "Textract extraction failed"
 
-    def test_handler_empty_event(self, lambda_context: Any) -> None:
-        """Test handler with empty event."""
+    def test_handler_skips_no_table_data(self, lambda_context: Any) -> None:
+        """Test handler skips when no table data provided."""
         get_settings.cache_clear()
 
         from handler.main import handler
 
-        result = handler({}, lambda_context)
+        event = {
+            "status": "SUCCESS",
+            "s3_bucket": "bucket",
+            "s3_key": "key.pdf",
+            "product_name": "test",
+            "table_name": "Table 1",
+            "table_number": 1,
+            # No "table" key
+        }
 
-        assert result["statusCode"] == 200
-        assert result["body"]["event"] == {}
+        result = handler(event, lambda_context)
+
+        assert result["status"] == "SKIPPED"
+        assert result["reason"] == "No table data provided"
 
 
 class TestConfig:

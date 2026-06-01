@@ -85,6 +85,12 @@ resource "aws_lambda_function" "main" {
       BUSINESS_BUCKET_NAME = local.datalake.business.bucket_name
       BUSINESS_BUCKET_ARN  = local.datalake.business.bucket_arn
       BUSINESS_KMS_KEY_ARN = local.datalake.business.kms_key_arn
+
+      # DynamoDB configuration (from SSM via Terraform)
+      DYNAMODB_TABLE_NAME = local.dynamodb.clinical_pdf_jobs.table_name
+
+      # Bedrock configuration
+      BEDROCK_MODEL_ID = local.bedrock_model_id
     }
   }
 

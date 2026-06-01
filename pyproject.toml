@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "my-lambda-function"
-version = "0.1.0"
-description = "AWS Lambda function template with Python and Docker"
-authors = ["Your Name <your.email@example.com>"]
+name = "lambda-clinical-pdf-tables-normalization-crf"
+version = "1.0.0"
+description = "AWS Lambda function to normalize clinical PDF table data using Claude AI"
+authors = ["Clinical RAG Foundry Team"]
 readme = "README.md"
 packages = [{include = "handler", from = "src"}]
 
@@ -12,6 +12,7 @@ aws-lambda-powertools = {extras = ["tracer"], version = "^2.34.0"}
 boto3 = "^1.34.0"
 pydantic = "^2.6.0"
 pydantic-settings = "^2.2.0"
+anthropic = "^0.40.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

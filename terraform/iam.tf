@@ -100,3 +100,55 @@ resource "aws_iam_role_policy" "kms_access" {
     ]
   })
 }
+
+# -----------------------------------------------------------------------------
+# Bedrock Access for Claude AI
+# -----------------------------------------------------------------------------
+resource "aws_iam_role_policy" "bedrock_access" {
+  name = "${local.full_name}-bedrock"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "BedrockInvokeModel"
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream"
+        ]
+        Resource = [
+          "arn:aws:bedrock:${local.aws_region}::foundation-model/${local.bedrock_model_id}",
+          "arn:aws:bedrock:${local.aws_region}::foundation-model/anthropic.claude-*"
+        ]
+      }
+    ]
+  })
+}
+
+# -----------------------------------------------------------------------------
+# DynamoDB Access for Job Tracking
+# -----------------------------------------------------------------------------
+resource "aws_iam_role_policy" "dynamodb_access" {
+  name = "${local.full_name}-dynamodb"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "DynamoDBUpdateJob"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:UpdateItem",
+          "dynamodb:GetItem",
+          "dynamodb:PutItem"
+        ]
+        Resource = [
+          local.dynamodb.clinical_pdf_jobs.table_arn
+        ]
+      }
+    ]
+  })
+}
