@@ -25,10 +25,9 @@ locals {
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Bedrock Configuration
-  # Note: Claude 3.5 Sonnet v1 (20240620) is available in eu-west-1
-  # v2 (20241022) requires cross-region inference profile
+  # Amazon Nova Pro - cost-effective, available in eu-west-1
   # ─────────────────────────────────────────────────────────────────────────────
-  bedrock_model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+  bedrock_model_id = "amazon.nova-pro-v1:0"
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Computed Values (DO NOT MODIFY)

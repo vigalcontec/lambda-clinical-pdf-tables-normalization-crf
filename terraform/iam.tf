@@ -102,7 +102,7 @@ resource "aws_iam_role_policy" "kms_access" {
 }
 
 # -----------------------------------------------------------------------------
-# Bedrock Access for Claude AI
+# Bedrock Access for Foundation Models
 # -----------------------------------------------------------------------------
 resource "aws_iam_role_policy" "bedrock_access" {
   name = "${local.full_name}-bedrock"
@@ -120,6 +120,7 @@ resource "aws_iam_role_policy" "bedrock_access" {
         ]
         Resource = [
           "arn:aws:bedrock:${local.aws_region}::foundation-model/${local.bedrock_model_id}",
+          "arn:aws:bedrock:${local.aws_region}::foundation-model/amazon.nova-*",
           "arn:aws:bedrock:${local.aws_region}::foundation-model/anthropic.claude-*"
         ]
       }

@@ -1,4 +1,4 @@
-"""AWS Bedrock utility functions for Claude AI integration."""
+"""AWS Bedrock utility functions for foundation model integration."""
 
 import json
 from functools import lru_cache
@@ -20,68 +20,136 @@ def _get_bedrock_client() -> Any:
     return boto3.client("bedrock-runtime", region_name=settings.aws_region)
 
 
-@tracer.capture_method
-def invoke_claude(
+def _build_claude_request(
     prompt: str,
-    system_prompt: str | None = None,
-    max_tokens: int = 4096,
-    temperature: float = 0.0,
-) -> str:
-    """Invoke Claude model via AWS Bedrock.
-
-    Args:
-        prompt: The user prompt to send to Claude
-        system_prompt: Optional system prompt for context
-        max_tokens: Maximum tokens in response (default 4096)
-        temperature: Temperature for response randomness (default 0.0 for deterministic)
-
-    Returns:
-        The text response from Claude
-    """
-    settings = get_settings()
-    client = _get_bedrock_client()
-
+    system_prompt: str | None,
+    max_tokens: int,
+    temperature: float,
+) -> dict[str, Any]:
+    """Build request body for Claude models."""
     messages = [{"role": "user", "content": prompt}]
-
-    request_body = {
+    request_body: dict[str, Any] = {
         "anthropic_version": "bedrock-2023-05-31",
         "max_tokens": max_tokens,
         "temperature": temperature,
         "messages": messages,
     }
-
     if system_prompt:
         request_body["system"] = system_prompt
+    return request_body
+
+
+def _build_nova_request(
+    prompt: str,
+    system_prompt: str | None,
+    max_tokens: int,
+    temperature: float,
+) -> dict[str, Any]:
+    """Build request body for Amazon Nova models."""
+    messages = [{"role": "user", "content": [{"text": prompt}]}]
+    request_body: dict[str, Any] = {
+        "messages": messages,
+        "inferenceConfig": {
+            "maxTokens": max_tokens,
+            "temperature": temperature,
+        },
+    }
+    if system_prompt:
+        request_body["system"] = [{"text": system_prompt}]
+    return request_body
+
+
+def _parse_claude_response(response_body: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """Parse response from Claude models."""
+    output_text = response_body["content"][0]["text"]
+    usage = {
+        "input_tokens": response_body.get("usage", {}).get("input_tokens"),
+        "output_tokens": response_body.get("usage", {}).get("output_tokens"),
+    }
+    return output_text, usage
+
+
+def _parse_nova_response(response_body: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """Parse response from Amazon Nova models."""
+    output_text = response_body["output"]["message"]["content"][0]["text"]
+    usage = {
+        "input_tokens": response_body.get("usage", {}).get("inputTokens"),
+        "output_tokens": response_body.get("usage", {}).get("outputTokens"),
+    }
+    return output_text, usage
+
+
+@tracer.capture_method
+def invoke_model(
+    prompt: str,
+    system_prompt: str | None = None,
+    max_tokens: int = 4096,
+    temperature: float = 0.0,
+) -> str:
+    """Invoke foundation model via AWS Bedrock.
+
+    Supports both Claude and Amazon Nova models with automatic format detection.
+
+    Args:
+        prompt: The user prompt to send to the model
+        system_prompt: Optional system prompt for context
+        max_tokens: Maximum tokens in response (default 4096)
+        temperature: Temperature for response randomness (default 0.0 for deterministic)
+
+    Returns:
+        The text response from the model
+    """
+    settings = get_settings()
+    client = _get_bedrock_client()
+    model_id = settings.bedrock_model_id
+
+    # Determine model type and build appropriate request
+    is_nova = model_id.startswith("amazon.nova")
+
+    if is_nova:
+        request_body = _build_nova_request(prompt, system_prompt, max_tokens, temperature)
+    else:
+        request_body = _build_claude_request(prompt, system_prompt, max_tokens, temperature)
 
     logger.info(
-        "Invoking Claude model",
+        "Invoking Bedrock model",
         extra={
-            "model_id": settings.bedrock_model_id,
+            "model_id": model_id,
+            "model_type": "nova" if is_nova else "claude",
             "prompt_length": len(prompt),
             "max_tokens": max_tokens,
         },
     )
 
     response = client.invoke_model(
-        modelId=settings.bedrock_model_id,
+        modelId=model_id,
         contentType="application/json",
         accept="application/json",
         body=json.dumps(request_body),
     )
 
     response_body = json.loads(response["body"].read())
-    output_text = response_body["content"][0]["text"]
+
+    # Parse response based on model type
+    if is_nova:
+        output_text, usage = _parse_nova_response(response_body)
+    else:
+        output_text, usage = _parse_claude_response(response_body)
 
     logger.info(
-        "Claude response received",
+        "Model response received",
         extra={
-            "input_tokens": response_body.get("usage", {}).get("input_tokens"),
-            "output_tokens": response_body.get("usage", {}).get("output_tokens"),
+            "input_tokens": usage.get("input_tokens"),
+            "output_tokens": usage.get("output_tokens"),
             "response_length": len(output_text),
         },
     )
 
     return str(output_text)
+
+
+# Alias for backward compatibility
+invoke_claude = invoke_model
 
 
 @tracer.capture_method
