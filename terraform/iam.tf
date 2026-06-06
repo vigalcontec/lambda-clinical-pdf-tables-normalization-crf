@@ -120,18 +120,11 @@ resource "aws_iam_role_policy" "bedrock_access" {
           "bedrock:InvokeModelWithResponseStream"
         ]
         Resource = [
-          # Cross-region inference profiles
-          "arn:aws:bedrock:${local.aws_region}:${local.account_id}:inference-profile/*",
-          "arn:aws:bedrock:eu-west-1:${local.account_id}:inference-profile/*",
-          "arn:aws:bedrock:eu-west-3:${local.account_id}:inference-profile/*",
-          "arn:aws:bedrock:eu-central-1:${local.account_id}:inference-profile/*",
-          # Foundation models in all EU regions (for cross-region routing)
-          "arn:aws:bedrock:eu-west-1::foundation-model/amazon.nova-*",
-          "arn:aws:bedrock:eu-west-3::foundation-model/amazon.nova-*",
-          "arn:aws:bedrock:eu-central-1::foundation-model/amazon.nova-*",
-          "arn:aws:bedrock:eu-west-1::foundation-model/anthropic.claude-*",
-          "arn:aws:bedrock:eu-west-3::foundation-model/anthropic.claude-*",
-          "arn:aws:bedrock:eu-central-1::foundation-model/anthropic.claude-*"
+          # Cross-region inference profiles (all regions)
+          "arn:aws:bedrock:*:${local.account_id}:inference-profile/*",
+          # Foundation models (all regions for cross-region routing)
+          "arn:aws:bedrock:*::foundation-model/amazon.nova-*",
+          "arn:aws:bedrock:*::foundation-model/anthropic.claude-*"
         ]
       }
     ]
