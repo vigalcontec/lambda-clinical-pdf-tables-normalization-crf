@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     # DynamoDB configuration (from SSM via Terraform)
     dynamodb_table_name: str = ""
 
-    # Bedrock configuration
-    bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+    # Bedrock configuration (v1 is available in eu-west-1, v2 requires cross-region)
+    bedrock_model_id: str = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
     # S3 configuration (from SSM via Terraform)
     business_bucket_name: str = ""
