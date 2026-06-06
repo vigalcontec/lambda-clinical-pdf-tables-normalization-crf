@@ -27,7 +27,7 @@ locals {
   # Bedrock Configuration
   # Amazon Nova Pro - cost-effective, available in eu-west-1
   # ─────────────────────────────────────────────────────────────────────────────
-  bedrock_model_id = "amazon.nova-pro-v1:0"
+  bedrock_model_id = "eu.amazon.nova-pro-v1:0"
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Computed Values (DO NOT MODIFY)
