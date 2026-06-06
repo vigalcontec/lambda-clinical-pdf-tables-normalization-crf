@@ -119,6 +119,7 @@ resource "aws_iam_role_policy" "bedrock_access" {
           "bedrock:InvokeModelWithResponseStream"
         ]
         Resource = [
+          "arn:aws:bedrock:${local.aws_region}:${local.account_id}:inference-profile/*",
           "arn:aws:bedrock:${local.aws_region}::foundation-model/${local.bedrock_model_id}",
           "arn:aws:bedrock:${local.aws_region}::foundation-model/amazon.nova-*",
           "arn:aws:bedrock:${local.aws_region}::foundation-model/anthropic.claude-*"
