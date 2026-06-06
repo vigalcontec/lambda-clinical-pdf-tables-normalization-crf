@@ -122,6 +122,69 @@ class TestConfig:
 class TestBedrockUtils:
     """Tests for Bedrock utility functions."""
 
+    def test_build_claude_request(self) -> None:
+        """Test _build_claude_request creates correct format."""
+        from handler.utils.bedrock import _build_claude_request
+
+        result = _build_claude_request(
+            prompt="Test prompt",
+            system_prompt="System prompt",
+            max_tokens=4096,
+            temperature=0.0,
+        )
+
+        assert result["anthropic_version"] == "bedrock-2023-05-31"
+        assert result["max_tokens"] == 4096
+        assert result["temperature"] == 0.0
+        assert result["messages"] == [{"role": "user", "content": "Test prompt"}]
+        assert result["system"] == "System prompt"
+
+    def test_build_claude_request_no_system_prompt(self) -> None:
+        """Test _build_claude_request without system prompt."""
+        from handler.utils.bedrock import _build_claude_request
+
+        result = _build_claude_request(
+            prompt="Test prompt",
+            system_prompt=None,
+            max_tokens=1000,
+            temperature=0.5,
+        )
+
+        assert "system" not in result
+        assert result["max_tokens"] == 1000
+
+    def test_build_nova_request(self) -> None:
+        """Test _build_nova_request creates correct format with maxNewTokens."""
+        from handler.utils.bedrock import _build_nova_request
+
+        result = _build_nova_request(
+            prompt="Test prompt",
+            system_prompt="System prompt",
+            max_tokens=4096,
+            temperature=0.0,
+        )
+
+        assert "inferenceConfig" in result
+        assert result["inferenceConfig"]["maxNewTokens"] == 4096
+        assert result["inferenceConfig"]["temperature"] == 0.0
+        assert result["messages"] == [{"role": "user", "content": [{"text": "Test prompt"}]}]
+        assert result["system"] == [{"text": "System prompt"}]
+
+    def test_build_nova_request_no_system_prompt(self) -> None:
+        """Test _build_nova_request without system prompt."""
+        from handler.utils.bedrock import _build_nova_request
+
+        result = _build_nova_request(
+            prompt="Test prompt",
+            system_prompt=None,
+            max_tokens=2000,
+            temperature=0.7,
+        )
+
+        assert "system" not in result
+        assert result["inferenceConfig"]["maxNewTokens"] == 2000
+        assert result["inferenceConfig"]["temperature"] == 0.7
+
     @patch("handler.utils.bedrock._get_bedrock_client")
     def test_invoke_claude(self, mock_get_client: MagicMock) -> None:
         """Test invoke_claude calls Bedrock API."""
@@ -156,6 +219,58 @@ class TestBedrockUtils:
         result = invoke_claude("Test prompt")
 
         assert result == "Response"
+
+    @patch("handler.utils.bedrock.get_settings")
+    @patch("handler.utils.bedrock._get_bedrock_client")
+    def test_invoke_model_with_nova(self, mock_get_client: MagicMock, mock_settings: MagicMock) -> None:
+        """Test invoke_model uses Nova format when model ID starts with amazon.nova."""
+        from handler.utils.bedrock import invoke_model
+
+        # Configure mock settings for Nova model
+        mock_settings.return_value.bedrock_model_id = "eu.amazon.nova-pro-v1:0"
+
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.invoke_model.return_value = {
+            "body": MagicMock(
+                read=lambda: b'{"output": {"message": {"content": [{"text": "Nova response"}]}}, "usage": {"inputTokens": 10, "outputTokens": 5}}'
+            )
+        }
+
+        result = invoke_model("Test prompt", system_prompt="System prompt")
+
+        assert result == "Nova response"
+        mock_client.invoke_model.assert_called_once()
+
+    def test_parse_nova_response(self) -> None:
+        """Test _parse_nova_response extracts text and usage correctly."""
+        from handler.utils.bedrock import _parse_nova_response
+
+        response_body = {
+            "output": {"message": {"content": [{"text": "Nova output"}]}},
+            "usage": {"inputTokens": 100, "outputTokens": 50},
+        }
+
+        text, usage = _parse_nova_response(response_body)
+
+        assert text == "Nova output"
+        assert usage["input_tokens"] == 100
+        assert usage["output_tokens"] == 50
+
+    def test_parse_claude_response(self) -> None:
+        """Test _parse_claude_response extracts text and usage correctly."""
+        from handler.utils.bedrock import _parse_claude_response
+
+        response_body = {
+            "content": [{"text": "Claude output"}],
+            "usage": {"input_tokens": 100, "output_tokens": 50},
+        }
+
+        text, usage = _parse_claude_response(response_body)
+
+        assert text == "Claude output"
+        assert usage["input_tokens"] == 100
+        assert usage["output_tokens"] == 50
 
     @patch("handler.utils.bedrock.invoke_claude")
     def test_normalize_table_with_claude_json_response(

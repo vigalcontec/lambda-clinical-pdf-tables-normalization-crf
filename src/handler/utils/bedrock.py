@@ -50,7 +50,7 @@ def _build_nova_request(
     request_body: dict[str, Any] = {
         "messages": messages,
         "inferenceConfig": {
-            "maxTokens": max_tokens,
+            "maxNewTokens": max_tokens,
             "temperature": temperature,
         },
     }
@@ -104,7 +104,8 @@ def invoke_model(
     model_id = settings.bedrock_model_id
 
     # Determine model type and build appropriate request
-    is_nova = model_id.startswith("amazon.nova")
+    # Handle both direct (amazon.nova-*) and cross-region (eu.amazon.nova-*) model IDs
+    is_nova = "amazon.nova" in model_id
 
     if is_nova:
         request_body = _build_nova_request(prompt, system_prompt, max_tokens, temperature)
