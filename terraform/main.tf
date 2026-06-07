@@ -67,7 +67,7 @@ resource "aws_lambda_function" "main" {
 
   timeout                        = local.timeout
   memory_size                    = local.memory_size
-  reserved_concurrent_executions = 50
+  reserved_concurrent_executions = 10
 
   environment {
     variables = {
