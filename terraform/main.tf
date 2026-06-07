@@ -65,8 +65,9 @@ resource "aws_lambda_function" "main" {
   package_type  = "Image"
   image_uri     = "${data.aws_ecr_repository.lambda.repository_url}:${var.image_tag}"
 
-  timeout     = local.timeout
-  memory_size = local.memory_size
+  timeout                        = local.timeout
+  memory_size                    = local.memory_size
+  reserved_concurrent_executions = 50
 
   environment {
     variables = {
