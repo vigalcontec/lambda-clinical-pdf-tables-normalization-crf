@@ -154,7 +154,7 @@ class TestBedrockUtils:
         assert result["max_tokens"] == 1000
 
     def test_build_nova_request(self) -> None:
-        """Test _build_nova_request creates correct format with maxNewTokens."""
+        """Test _build_nova_request creates correct format with schemaVersion and maxTokens."""
         from handler.utils.bedrock import _build_nova_request
 
         result = _build_nova_request(
@@ -164,8 +164,9 @@ class TestBedrockUtils:
             temperature=0.0,
         )
 
+        assert result["schemaVersion"] == "messages-v1"
         assert "inferenceConfig" in result
-        assert result["inferenceConfig"]["maxNewTokens"] == 4096
+        assert result["inferenceConfig"]["maxTokens"] == 4096
         assert result["inferenceConfig"]["temperature"] == 0.0
         assert result["messages"] == [{"role": "user", "content": [{"text": "Test prompt"}]}]
         assert result["system"] == [{"text": "System prompt"}]
@@ -181,8 +182,9 @@ class TestBedrockUtils:
             temperature=0.7,
         )
 
+        assert result["schemaVersion"] == "messages-v1"
         assert "system" not in result
-        assert result["inferenceConfig"]["maxNewTokens"] == 2000
+        assert result["inferenceConfig"]["maxTokens"] == 2000
         assert result["inferenceConfig"]["temperature"] == 0.7
 
     @patch("handler.utils.bedrock._get_bedrock_client")

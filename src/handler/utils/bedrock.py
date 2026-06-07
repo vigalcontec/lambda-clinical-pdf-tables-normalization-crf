@@ -45,12 +45,16 @@ def _build_nova_request(
     max_tokens: int,
     temperature: float,
 ) -> dict[str, Any]:
-    """Build request body for Amazon Nova models."""
+    """Build request body for Amazon Nova models.
+
+    Reference: https://docs.aws.amazon.com/nova/latest/userguide/using-invoke-api.html
+    """
     messages = [{"role": "user", "content": [{"text": prompt}]}]
     request_body: dict[str, Any] = {
+        "schemaVersion": "messages-v1",
         "messages": messages,
         "inferenceConfig": {
-            "maxNewTokens": max_tokens,
+            "maxTokens": max_tokens,
             "temperature": temperature,
         },
     }
