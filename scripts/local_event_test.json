@@ -1,0 +1,32 @@
+{
+  "status": "SUCCESS",
+  "job_id": "73a98bcaed2e5b347266ff9f037099270b545348fdf729a2479eedc3e06fd319",
+  "s3_bucket": "datalake-raw-vigalcontec-dev-002332700133",
+  "s3_key": "crf/clinical_pdfs/ibrance/20260603164300/ibrance-epar-product-information_en.pdf",
+  "product_name": "ibrance",
+  "table_name": "Table 5: Laboratory abnormalities observed in pooled dataset from 3 randomised studies",
+  "table_number": 5,
+  "pages_processed": [11],
+  "table_index_on_page": 1,
+  "tables_found_on_page": 2,
+  "table": {
+    "title": "Table 5: Laboratory abnormalities observed in pooled dataset from 3 randomised studies",
+    "rows": [
+      ["Laboratory abnormality", "IBRANCE plus letrozole (N=444)", "", "Placebo plus letrozole (N=222)", ""],
+      ["", "All grades %", "Grade 3 %", "All grades %", "Grade 3 %"],
+      ["WBC decreased", "97.4", "41.8", "26.2", "0.2"],
+      ["Neutrophils decreased", "95.2", "56.8", "17.1", "0.6"],
+      ["Anaemia", "78.2", "5.4", "42.2", "1.4"],
+      ["Platelets decreased", "62.8", "1.6", "10.0", "0.5"]
+    ],
+    "row_count": 6,
+    "column_count": 5,
+    "confidence": 99.5
+  },
+  "formulation_key": "28e423a2c598",
+  "formulations": [
+    "IBRANCE 75 mg hard capsules",
+    "IBRANCE 100 mg hard capsules",
+    "IBRANCE 125 mg hard capsules"
+  ]
+}

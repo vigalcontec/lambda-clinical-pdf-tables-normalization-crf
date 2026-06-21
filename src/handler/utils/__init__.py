@@ -4,6 +4,7 @@ from handler.utils.bedrock import invoke_claude, normalize_table_with_claude
 from handler.utils.dynamodb import (
     increment_normalization_failed,
     increment_tables_normalized,
+    record_table_status,
     update_job_status_if_complete,
     update_table_with_normalized_data,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "update_table_with_normalized_data",
     "increment_tables_normalized",
     "increment_normalization_failed",
+    "record_table_status",
     "update_job_status_if_complete",
     # S3
     "write_jsonl_to_s3",

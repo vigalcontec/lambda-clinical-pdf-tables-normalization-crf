@@ -18,6 +18,72 @@ def _get_dynamodb_resource() -> Any:
 
 
 @tracer.capture_method
+def record_table_status(
+    table_name: str,
+    job_id: str,
+    table_number: int,
+    page: int,
+    status: str,
+    output_uri: str | None = None,
+    error_message: str | None = None,
+) -> None:
+    """Record the processing status of a single table.
+
+    Creates or updates a TABLE# record to track whether this specific
+    table/page combination has been processed. This enables incremental
+    reprocessing - the Locator Lambda can query these records to skip
+    tables that have already been processed successfully.
+
+    Args:
+        table_name: DynamoDB table name
+        job_id: Job identifier (file hash)
+        table_number: Table number in the document
+        page: Page number where table was found
+        status: Processing status (SUCCESS, FAILED)
+        output_uri: S3 URI of the output file (for SUCCESS)
+        error_message: Error message (for FAILED)
+    """
+    if not table_name:
+        logger.warning("DynamoDB table name not configured, skipping update")
+        return
+
+    table = _get_dynamodb_resource().Table(table_name)
+    now = datetime.now(UTC).isoformat()
+
+    update_expr = "SET #status = :status, updated_at = :now"
+    expr_names = {"#status": "status"}
+    expr_values: dict[str, Any] = {
+        ":status": status,
+        ":now": now,
+    }
+
+    if output_uri:
+        update_expr += ", output_uri = :output_uri"
+        expr_values[":output_uri"] = output_uri
+
+    if error_message:
+        update_expr += ", error_message = :error"
+        expr_values[":error"] = error_message
+
+    logger.info(
+        "Recording table status",
+        extra={
+            "job_id": job_id,
+            "table_number": table_number,
+            "page": page,
+            "status": status,
+        },
+    )
+
+    table.update_item(
+        Key={"PK": f"JOB#{job_id}", "SK": f"TABLE#{table_number}#PAGE#{page}"},
+        UpdateExpression=update_expr,
+        ExpressionAttributeNames=expr_names,
+        ExpressionAttributeValues=expr_values,
+    )
+
+
+@tracer.capture_method
 def update_table_with_normalized_data(
     table_name: str,
     job_id: str,

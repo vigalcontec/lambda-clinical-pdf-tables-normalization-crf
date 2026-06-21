@@ -1,0 +1,11 @@
+{
+  "status": "FAILED",
+  "job_id": "73a98bcaed2e5b347266ff9f037099270b545348fdf729a2479eedc3e06fd319",
+  "error": "Unable to locate credentials",
+  "s3_bucket": "datalake-raw-vigalcontec-dev-002332700133",
+  "s3_key": "crf/clinical_pdfs/ibrance/20260603164300/ibrance-epar-product-information_en.pdf",
+  "product_name": "ibrance",
+  "table_name": "Table 5: Laboratory abnormalities observed in pooled dataset from 3 randomised studies",
+  "table_number": 5,
+  "page": 11
+}

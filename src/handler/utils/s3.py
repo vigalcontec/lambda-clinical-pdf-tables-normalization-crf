@@ -185,6 +185,8 @@ def transform_to_adaptive_schema(
     page: int,
     s3_key: str,
     bucket: str,
+    formulations: list[str] | None = None,
+    formulation_key: str | None = None,
 ) -> list[dict[str, Any]]:
     """Transform normalized table data to adaptive JSON schema.
 
@@ -201,6 +203,8 @@ def transform_to_adaptive_schema(
         page: Page number
         s3_key: Source PDF S3 key
         bucket: Source S3 bucket
+        formulations: List of drug formulations (e.g., ["IBRANCE 75 mg hard capsules", ...])
+        formulation_key: Unique key identifying the formulation group
 
     Returns:
         List of JSON records with adaptive schema
@@ -239,6 +243,8 @@ def transform_to_adaptive_schema(
                 "page": page,
                 "row_index": row_idx,
                 "s3_uri": f"s3://{bucket}/{s3_key}",
+                "formulations": formulations or [],
+                "formulation_key": formulation_key or "",
             },
             # Clinical data (semi-fixed schema)
             "clinical_data": _build_clinical_data_record(row, headers, table_metadata),
@@ -270,6 +276,8 @@ def write_jsonl_to_s3(
     s3_key: str,
     bucket: str,
     output_prefix: str = "crf/clinical_tables",
+    formulations: list[str] | None = None,
+    formulation_key: str | None = None,
 ) -> str:
     """Write normalized table data to S3 as JSON Lines.
 
@@ -287,6 +295,8 @@ def write_jsonl_to_s3(
         s3_key: Source PDF S3 key
         bucket: Target S3 bucket (business layer)
         output_prefix: S3 prefix for output files
+        formulations: List of drug formulations
+        formulation_key: Unique key identifying the formulation group
 
     Returns:
         S3 URI of the written JSONL file
@@ -303,6 +313,8 @@ def write_jsonl_to_s3(
         page=page,
         s3_key=s3_key,
         bucket=bucket,
+        formulations=formulations,
+        formulation_key=formulation_key,
     )
 
     # If no data rows, create a single metadata record
@@ -320,6 +332,8 @@ def write_jsonl_to_s3(
                 "page": page,
                 "row_index": 0,
                 "s3_uri": f"s3://{bucket}/{s3_key}",
+                "formulations": formulations or [],
+                "formulation_key": formulation_key or "",
             },
             "clinical_data": {},
             "attributes": {},

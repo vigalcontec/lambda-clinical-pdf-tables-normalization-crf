@@ -86,8 +86,17 @@ docker-push: ## Build and push to ECR
 # Local Development
 # ─────────────────────────────────────────────────────────────────────────────
 
-run-local: ## Run handler locally (for testing)
-	ENVIRONMENT=$(ENV) poetry run python -c "from handler.main import handler; print(handler({'test': 'event'}, None))"
+run-local: ## Run handler locally with a single test event
+	poetry run python scripts/test_single_event.py
+
+local-test: ## Run local test with Textract output file
+	poetry run python scripts/local_test.py --textract-output $(TEXTRACT_OUTPUT)
+
+local-test-dry: ## Run local test without S3/DynamoDB writes
+	poetry run python scripts/local_test.py --dry-run
+
+local-test-help: ## Show local test script help
+	poetry run python scripts/local_test.py --help
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Terraform

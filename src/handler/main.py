@@ -16,6 +16,7 @@ from handler.utils import (
     increment_normalization_failed,
     increment_tables_normalized,
     normalize_table_with_claude,
+    record_table_status,
     update_job_status_if_complete,
     update_table_with_normalized_data,
     write_jsonl_to_s3,
@@ -135,9 +136,11 @@ def handler(event: dict[str, Any], _context: LambdaContext) -> dict[str, Any]:
     settings = get_settings()
     logger.info("Starting table normalization", extra={"environment": settings.environment})
 
-    # Extract job_id for DynamoDB tracking
-    events_s3_key = event.get("events_s3_key")
-    job_id = _extract_job_id_from_events_key(events_s3_key)
+    # Get job_id from event (passed from Locator Lambda) or extract from path as fallback
+    job_id = event.get("job_id")
+    if not job_id:
+        events_s3_key = event.get("events_s3_key")
+        job_id = _extract_job_id_from_events_key(events_s3_key)
     dynamodb_table = settings.dynamodb_table_name
 
     # Check if previous step failed
@@ -165,6 +168,8 @@ def handler(event: dict[str, Any], _context: LambdaContext) -> dict[str, Any]:
         table_data = event.get("table")
         pages_processed = event.get("pages_processed", [])
         page = pages_processed[0] if pages_processed else event.get("page", 0)
+        formulations = event.get("formulations", [])
+        formulation_key = event.get("formulation_key", "")
 
         if not table_data:
             logger.warning("No table data to normalize")
@@ -245,11 +250,30 @@ def handler(event: dict[str, Any], _context: LambdaContext) -> dict[str, Any]:
                     s3_key=key or "",
                     bucket=settings.business_bucket_name,
                     output_prefix=settings.output_prefix,
+                    formulations=formulations,
+                    formulation_key=formulation_key,
                 )
             except Exception as s3_error:
                 logger.warning(
                     "Failed to write JSONL to S3",
                     extra={"error": str(s3_error)},
+                )
+
+        # Record table status for incremental reprocessing
+        if job_id and dynamodb_table:
+            try:
+                record_table_status(
+                    table_name=dynamodb_table,
+                    job_id=job_id,
+                    table_number=table_number or 0,
+                    page=page,
+                    status="SUCCESS",
+                    output_uri=output_uri,
+                )
+            except Exception as db_error:
+                logger.warning(
+                    "Failed to record table status",
+                    extra={"error": str(db_error), "job_id": job_id},
                 )
 
         logger.info(
@@ -263,12 +287,15 @@ def handler(event: dict[str, Any], _context: LambdaContext) -> dict[str, Any]:
 
         return {
             "status": "SUCCESS",
+            "job_id": job_id,
             "s3_bucket": bucket,
             "s3_key": key,
             "product_name": product_name,
             "table_name": table_name,
             "table_number": table_number,
             "page": page,
+            "formulations": formulations,
+            "formulation_key": formulation_key,
             "table_type_detected": table_type,
             "normalized_data": normalized_data,
             "normalization_status": normalization_status,
@@ -278,10 +305,23 @@ def handler(event: dict[str, Any], _context: LambdaContext) -> dict[str, Any]:
     except Exception as e:
         logger.exception("Error normalizing table")
 
-        # Update DynamoDB: increment failed counter
+        # Get page for error tracking
+        pages_processed = event.get("pages_processed", [])
+        error_page = pages_processed[0] if pages_processed else event.get("page", 0)
+        error_table_number = event.get("table_number", 0)
+
+        # Update DynamoDB: increment failed counter and record table status
         if job_id and dynamodb_table:
             try:
                 increment_normalization_failed(dynamodb_table, job_id, str(e))
+                record_table_status(
+                    table_name=dynamodb_table,
+                    job_id=job_id,
+                    table_number=error_table_number or 0,
+                    page=error_page,
+                    status="FAILED",
+                    error_message=str(e),
+                )
                 update_job_status_if_complete(dynamodb_table, job_id)
             except Exception as db_error:
                 logger.warning(
@@ -291,10 +331,12 @@ def handler(event: dict[str, Any], _context: LambdaContext) -> dict[str, Any]:
 
         return {
             "status": "FAILED",
+            "job_id": job_id,
             "error": str(e),
             "s3_bucket": event.get("s3_bucket"),
             "s3_key": event.get("s3_key"),
             "product_name": event.get("product_name"),
             "table_name": event.get("table_name"),
             "table_number": event.get("table_number"),
+            "page": error_page,
         }
